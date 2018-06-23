@@ -19,6 +19,7 @@ pub struct Timer<TIM> {
 pub enum Event {
     /// Timer timed out / count down ended
     TimeOut,
+    Update
 }
 
 macro_rules! hal {
@@ -72,21 +73,22 @@ macro_rules! hal {
                 // even if the `$TIM` are non overlapping (compare to the `free` function below
                 // which just works)
                 /// Configures a TIM peripheral as a periodic count down timer
-                pub fn $tim<T>(tim: $TIM, timeout: T, clocks: Clocks, apb1: &mut APB1) -> Self
-                where
-                    T: Into<Hertz>,
+                // pub fn $tim<T>(tim: $TIM, clocks: Clocks, apb1: &mut APB1) -> Self
+                pub fn $tim(tim: $TIM, clocks: Clocks, apb1: &mut APB1) -> Self
+                // where
+                    // T: Into<Hertz>,
                 {
                     // enable and reset peripheral to a clean slate state
                     apb1.enr().modify(|_, w| w.$timXen().set_bit());
                     apb1.rstr().modify(|_, w| w.$timXrst().set_bit());
                     apb1.rstr().modify(|_, w| w.$timXrst().clear_bit());
 
-                    let mut timer = Timer {
+                    let timer = Timer {
                         clocks,
                         tim,
                         timeout: Hertz(0),
                     };
-                    timer.start(timeout);
+                    // timer.start(timeout);
 
                     timer
                 }
@@ -95,10 +97,20 @@ macro_rules! hal {
                 pub fn listen(&mut self, event: Event) {
                     match event {
                         Event::TimeOut => {
+                            // Enable Timeout event interrupt
+                            self.tim.cr2.write(|w| {
+                                unsafe{w.mms().bits(0b001)}  // set mode to Update Event
+                            });
+                        },
+                        Event::Update => {
                             // Enable update event interrupt
-                            self.tim.dier.write(|w| w.uie().set_bit());
+                            self.tim.cr2.write(|w| {
+                                unsafe{w.mms().bits(0b010)}  // set mode to Update Event
+                            });
                         }
+
                     }
+                    self.tim.dier.write(|w| w.uie().set_bit());
                 }
 
                 /// Stops listening for an `event`
@@ -106,6 +118,16 @@ macro_rules! hal {
                     match event {
                         Event::TimeOut => {
                             // Enable update event interrupt
+                            self.tim.dier.write(|w| w.uie().clear_bit());
+                            self.tim.cr2.write(|w| {
+                                unsafe{w.mms().bits(0b000)}  // set mode to reset Event
+                            });
+                        },
+                        Event::Update => {
+                            // Enable update event interrupt
+                            self.tim.cr2.write(|w| {
+                                unsafe{w.mms().bits(0b000)}  // set mode to reset Event
+                            });
                             self.tim.dier.write(|w| w.uie().clear_bit());
                         }
                     }
