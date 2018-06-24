@@ -108,7 +108,6 @@ macro_rules! hal {
                                 unsafe{w.mms().bits(0b010)}  // set mode to Update Event
                             });
                         }
-
                     }
                     self.tim.dier.write(|w| w.uie().set_bit());
                 }
