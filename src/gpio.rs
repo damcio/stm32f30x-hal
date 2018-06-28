@@ -38,6 +38,9 @@ pub struct PushPull;
 /// Open drain output (type state)
 pub struct OpenDrain;
 
+/// Open drain output (type state)
+pub struct Analog;
+
 /// Alternate function 0 (type state)
 pub struct AF0;
 
@@ -100,7 +103,7 @@ macro_rules! gpio {
             use rcc::AHB;
             use super::{
                 AF4, AF5, AF6, AF7, Floating, GpioExt, Input, OpenDrain, Output,
-                PullDown, PullUp, PushPull,
+                PullDown, PullUp, PushPull, Analog
             };
 
             /// GPIO parts
@@ -427,6 +430,28 @@ macro_rules! gpio {
                         otyper
                             .otyper()
                             .modify(|r, w| unsafe { w.bits(r.bits() & !(0b1 << $i)) });
+
+                        $PXi { _mode: PhantomData }
+                    }
+
+                    /// Configures the pin to operate as an analog output
+                    pub fn into_analog_output(
+                        self,
+                        moder: &mut MODER,
+                        pupdr: &mut PUPDR,
+                    ) -> $PXi<Output<Analog>> {
+                        let offset = 2 * $i;
+
+                        // analog output mode
+                        let mode = 0b11;
+                        moder.moder().modify(|r, w| unsafe {
+                            w.bits((r.bits() & !(0b11 << offset)) | (mode << offset))
+                        });
+
+                        // no push pull output
+                        pupdr
+                            .pupdr()
+                            .modify(|_, w| unsafe { w.bits(0b00) });
 
                         $PXi { _mode: PhantomData }
                     }
