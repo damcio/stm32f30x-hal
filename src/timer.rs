@@ -150,3 +150,18 @@ hal! {
     TIM6: (tim6, tim6en, tim6rst),
     TIM7: (tim7, tim7en, tim7rst),
 }
+
+impl Timer<TIM2> {
+    pub fn get_counter(&self) -> u32
+    {
+        self.tim.cnt.read().bits()
+    }
+
+    pub fn stop(&mut self)
+    {
+        // pause
+        self.tim.cr1.modify(|_, w| w.cen().clear_bit());
+        // restart counter
+        self.tim.cnt.reset();
+    }
+}
