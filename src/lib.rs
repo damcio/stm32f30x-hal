@@ -20,7 +20,7 @@
 //! [`f3`]: https://docs.rs/f3/~0.5.1
 
 // #![deny(missing_docs)]
-#![deny(warnings)]
+// #![deny(warnings)]
 #![feature(never_type)]
 #![no_std]
 
